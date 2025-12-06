@@ -1,6 +1,6 @@
 #include "header.h"
 #include <limits.h>
-#include <time.h>
+#include <stdlib.h>
 
 /*
  * MPICH binomial broadcast baseline (no fault awareness).
@@ -64,44 +64,6 @@ fn_fail:
     goto fn_exit;
 }
 
-static int run_binomial(int buf_size, int root, MPI_Comm comm)
-{
-    int rank, size;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &size);
-
-    int *buffer = malloc(sizeof(int) * buf_size);
-    if (buffer == NULL) {
-        return MPI_ERR_NO_MEM;
-    }
-
-    int root_value = root + 1;
-    for (int i = 0; i < buf_size; i++) {
-        buffer[i] = (rank == root) ? root_value : -1;
-    }
-
-    clock_t start = clock();
-    int err = bcast_binomial(buffer, (size_t)buf_size, MPI_INT, root, comm);
-    MPI_Barrier(comm);
-    clock_t end = clock();
-    double difftime = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-    int res = 0;
-    for (int i = 0; i < buf_size; i++) {
-        res += (buffer[i] % 17);
-    }
-
-    if (rank == 0) {
-        printf("P: %d\n", size);
-        printf("Size: %d\n", buf_size);
-        printf("Time: %lf\n", difftime);
-    }
-    printf("Hello from %d of %d and the result is: %d\n", rank, size, res);
-
-    free(buffer);
-    return err;
-}
-
 int main(int argc, char *argv[])
 {
     MPI_Init(&argc, &argv);
@@ -114,7 +76,7 @@ int main(int argc, char *argv[])
     }
     buf_size = atoi(argv[1]);
 
-    run_binomial(buf_size, root, MPI_COMM_WORLD);
+    run_fault_aware_bcast(bcast_binomial, buf_size, root);
 
     MPI_Finalize();
     return 0;

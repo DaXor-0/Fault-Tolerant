@@ -2,6 +2,7 @@
 #define BCAST_HEADER_H
 
 #include <mpi.h>
+#include <mpi-ext.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -19,7 +20,7 @@ static inline MPI_Request *alloc_reqs(request_manager_t *manager, int nreqs)
     }
 
     if (manager->num_reqs < nreqs) {
-        MPI_Request *new_reqs = realloc(manager->reqs, sizeof(MPI_Request) * nreqs);
+        MPI_Request *new_reqs = (MPI_Request *) realloc(manager->reqs, sizeof(MPI_Request) * nreqs);
         if (new_reqs == NULL) {
             manager->reqs = NULL;
             manager->num_reqs = 0;
@@ -72,5 +73,7 @@ static inline int rounddown(int num, int factor)
 int bcast_linear(void *buff, size_t count, MPI_Datatype datatype, int root, MPI_Comm comm);
 int bcast_binomial(void *buffer, size_t count, MPI_Datatype datatype, int root, MPI_Comm comm_ptr);
 int bcast_scatter_allgather(void *buf, size_t count, MPI_Datatype dtype, int root, MPI_Comm comm);
+int run_fault_aware_bcast(int (*algo)(void *, size_t, MPI_Datatype, int, MPI_Comm),
+                          int buf_size, int root_world);
 
 #endif /* BCAST_HEADER_H */
