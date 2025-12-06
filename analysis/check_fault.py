@@ -1,5 +1,19 @@
 import os, csv, sys
 
+def parse_time_token(token):
+    """
+    Parse a GNU time-like token such as '0m1.234s' or '0m1,234s' or plain '1.234'
+    into seconds (float). Falls back to None on failure.
+    """
+    try:
+        t = token.strip().rstrip('s').replace(',', '.')
+        if 'm' in t:
+            mins, secs = t.split('m', 1)
+            return int(mins) * 60 + float(secs)
+        return float(t)
+    except Exception:
+        return None
+
 # Keep the logs when some errors occours
 def append_with_separator(algo, input_file1, input_file2, input_file3, text, output_file):
     # Create the output file if it doesn't exist
@@ -41,14 +55,14 @@ def getParameters():
             elif line[0] == "TIMEOUT":
                 TIMEOUT = int(line[-1])
             elif line[0] == "real":
-                TIME_T = float(line[-1][2:-1])
+                TIME_T = parse_time_token(line[-1])
             elif line[0] == "MPI_ABORT" or "MPI_ERRORS_ARE_FATAL" in line:
                 ABORT = True
     result = calcExpectedRes(N-1, BUF_SIZE)
     KILLED, RIGHT_RESULT, TIME = mpiOutput(N, result)
     if not TIME:
         TIME = TIME_T
-    if TIME_T > TIMEOUT:
+    if TIME_T and TIMEOUT and TIME_T > TIMEOUT:
         DEADLOCK = True
     # Write back on "../out/check.txt" True if and only if we had one kill and no errors
     with open("../out/check.txt", "w") as f:
